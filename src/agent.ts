@@ -220,6 +220,7 @@ export async function runAgent(): Promise<void> {
   while (true) {
     const response = await client.chat.completions.create({
       model: 'gpt-4o-mini',
+      max_tokens: 4096,
       tools: TOOLS,
       tool_choice: 'auto',
       messages,

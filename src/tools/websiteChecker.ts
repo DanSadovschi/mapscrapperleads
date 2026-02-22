@@ -18,7 +18,6 @@ const DIRECTORY_SITES = [
   'checkatrade.com',
   'trustatrader.com',
   'mybuilder.com',
-  'rated people',
   'ratedpeople.com',
   'bark.com',
   'thomsonlocal.com',
@@ -110,9 +109,7 @@ export async function checkWebsite(rawUrl: string): Promise<WebsiteAssessment> {
   if (isFreePlatform) issues.push('Free website builder');
 
   let quality: WebsiteAssessment['quality'] = 'ok';
-  if (issues.length >= 2 || (!hasSSL && !hasMobileViewport)) {
-    quality = 'poor';
-  } else if (!hasSSL || isFreePlatform || isVeryThin) {
+  if (issues.length > 0) {
     quality = 'poor';
   }
 
