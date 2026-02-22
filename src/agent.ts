@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { searchBusinesses, getPlaceDetails } from './tools/places.js';
 import { checkWebsite } from './tools/websiteChecker.js';
 import { extractEmailFromWebsite } from './tools/emailExtractor.js';
@@ -9,80 +9,95 @@ const LOCATION = 'Kettering, Northamptonshire, UK';
 
 // ─── Tool definitions ────────────────────────────────────────────────────────
 
-const TOOLS: Anthropic.Tool[] = [
+const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
   {
-    name: 'search_businesses',
-    description:
-      'Search Google Maps for businesses of a specific trade/category in Kettering. Returns a list of businesses with their place IDs, names and addresses.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        query: {
-          type: 'string',
-          description:
-            'The trade or service type to search for. Be specific, e.g. "electrician", "plumber", "tattoo studio", "carpet cleaning", "man with a van removal".',
+    type: 'function',
+    function: {
+      name: 'search_businesses',
+      description:
+        'Search Google Maps for businesses of a specific trade/category in Kettering. Returns a list of businesses with their place IDs, names and addresses.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description:
+              'The trade or service type to search for. Be specific, e.g. "electrician", "plumber", "tattoo studio", "carpet cleaning", "man with a van removal".',
+          },
         },
+        required: ['query'],
       },
-      required: ['query'],
     },
   },
   {
-    name: 'get_business_details',
-    description:
-      'Get the phone number and website URL for a specific business using its place_id. Call this for every business returned by search_businesses.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        place_id: { type: 'string', description: 'The Google place_id of the business.' },
-        business_name: { type: 'string', description: 'Human-readable name (for logging only).' },
-      },
-      required: ['place_id', 'business_name'],
-    },
-  },
-  {
-    name: 'check_website_quality',
-    description:
-      'Check whether a website actually loads and assess its quality (SSL, mobile-friendly, content quality). Returns a quality rating: "none", "broken", "poor", or "ok".',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        url: { type: 'string', description: 'The full website URL to check.' },
-      },
-      required: ['url'],
-    },
-  },
-  {
-    name: 'extract_email',
-    description:
-      'Attempt to scrape a contact email address from the business website. Try this for any lead before saving.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        url: { type: 'string', description: 'The website URL to extract an email from.' },
-      },
-      required: ['url'],
-    },
-  },
-  {
-    name: 'save_lead',
-    description:
-      'Save a qualified lead to the CSV file. Only save businesses that have NO website, a BROKEN website, or a POOR QUALITY website.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        businessName: { type: 'string', description: 'Full business name.' },
-        phone: { type: 'string', description: 'Phone number (empty string if not available).' },
-        email: { type: 'string', description: 'Contact email (empty string if not found).' },
-        website: { type: 'string', description: 'Website URL (empty string if none).' },
-        address: { type: 'string', description: 'Full address.' },
-        category: { type: 'string', description: 'Trade/service category, e.g. "Electrician".' },
-        reason: {
-          type: 'string',
-          description:
-            'Short reason why this is a lead. Examples: "No website", "Facebook page only", "No HTTPS; Not mobile-friendly", "Site unreachable".',
+    type: 'function',
+    function: {
+      name: 'get_business_details',
+      description:
+        'Get the phone number and website URL for a specific business using its place_id. Call this for every business returned by search_businesses.',
+      parameters: {
+        type: 'object',
+        properties: {
+          place_id: { type: 'string', description: 'The Google place_id of the business.' },
+          business_name: { type: 'string', description: 'Human-readable name (for logging only).' },
         },
+        required: ['place_id', 'business_name'],
       },
-      required: ['businessName', 'phone', 'email', 'website', 'address', 'category', 'reason'],
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'check_website_quality',
+      description:
+        'Check whether a website actually loads and assess its quality (SSL, mobile-friendly, content quality). Returns a quality rating: "none", "broken", "poor", or "ok".',
+      parameters: {
+        type: 'object',
+        properties: {
+          url: { type: 'string', description: 'The full website URL to check.' },
+        },
+        required: ['url'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'extract_email',
+      description:
+        'Attempt to scrape a contact email address from the business website. Try this for any lead before saving.',
+      parameters: {
+        type: 'object',
+        properties: {
+          url: { type: 'string', description: 'The website URL to extract an email from.' },
+        },
+        required: ['url'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'save_lead',
+      description:
+        'Save a qualified lead to the CSV file. Only save businesses that have NO website, a BROKEN website, or a POOR QUALITY website.',
+      parameters: {
+        type: 'object',
+        properties: {
+          businessName: { type: 'string', description: 'Full business name.' },
+          phone: { type: 'string', description: 'Phone number (empty string if not available).' },
+          email: { type: 'string', description: 'Contact email (empty string if not found).' },
+          website: { type: 'string', description: 'Website URL (empty string if none).' },
+          address: { type: 'string', description: 'Full address.' },
+          category: { type: 'string', description: 'Trade/service category, e.g. "Electrician".' },
+          reason: {
+            type: 'string',
+            description:
+              'Short reason why this is a lead. Examples: "No website", "Facebook page only", "No HTTPS; Not mobile-friendly", "Site unreachable".',
+          },
+        },
+        required: ['businessName', 'phone', 'email', 'website', 'address', 'category', 'reason'],
+      },
     },
   },
 ];
@@ -189,12 +204,13 @@ RULES
 // ─── Agent loop ──────────────────────────────────────────────────────────────
 
 export async function runAgent(): Promise<void> {
-  const client = new Anthropic();
+  const client = new OpenAI();
 
   console.log('🤖 Lead Generation Agent starting…');
   console.log(`📍 Target: Kettering, Northamptonshire\n`);
 
-  const messages: Anthropic.MessageParam[] = [
+  const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+    { role: 'system', content: SYSTEM_PROMPT },
     {
       role: 'user',
       content: 'Start the lead generation process now. Work through all relevant categories systematically.',
@@ -202,52 +218,55 @@ export async function runAgent(): Promise<void> {
   ];
 
   while (true) {
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 4096,
-      system: SYSTEM_PROMPT,
+    const response = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
       tools: TOOLS,
+      tool_choice: 'auto',
       messages,
     });
 
+    const choice = response.choices[0];
+    const message = choice.message;
+
     // Print any text the agent writes
-    for (const block of response.content) {
-      if (block.type === 'text' && block.text.trim()) {
-        console.log(`\n🤖 ${block.text.trim()}`);
-      }
+    if (message.content?.trim()) {
+      console.log(`\n🤖 ${message.content.trim()}`);
     }
 
+    // Add assistant message to history
+    messages.push(message);
+
     // Agent is done
-    if (response.stop_reason === 'end_turn') break;
+    if (choice.finish_reason === 'stop') break;
 
-    // No tools called — shouldn't happen but guard anyway
-    if (response.stop_reason !== 'tool_use') break;
+    // No tool calls — guard
+    if (choice.finish_reason !== 'tool_calls' || !message.tool_calls?.length) break;
 
-    // Process tool calls
-    messages.push({ role: 'assistant', content: response.content });
+    // Process tool calls and collect results
+    const toolResults: OpenAI.Chat.ChatCompletionToolMessageParam[] = [];
 
-    const toolResults: Anthropic.ToolResultBlockParam[] = [];
+    for (const toolCall of message.tool_calls) {
+      if (toolCall.type !== 'function') continue;
+      const name = toolCall.function.name;
+      const input = JSON.parse(toolCall.function.arguments) as Record<string, string>;
 
-    for (const block of response.content) {
-      if (block.type !== 'tool_use') continue;
-
-      const input = block.input as Record<string, string>;
       const preview = JSON.stringify(input).slice(0, 120);
-      console.log(`\n🔧 ${block.name}(${preview}${preview.length >= 120 ? '…' : ''})`);
+      console.log(`\n🔧 ${name}(${preview}${preview.length >= 120 ? '…' : ''})`);
 
-      const result = await executeTool(block.name, input);
+      const result = await executeTool(name, input);
 
       const resultPreview = result.slice(0, 200);
       console.log(`   → ${resultPreview}${result.length > 200 ? '…' : ''}`);
 
       toolResults.push({
-        type: 'tool_result',
-        tool_use_id: block.id,
+        role: 'tool',
+        tool_call_id: toolCall.id,
         content: result,
       });
     }
 
-    messages.push({ role: 'user', content: toolResults });
+    // Add all tool results at once
+    messages.push(...toolResults);
   }
 
   console.log('\n✅ Agent finished.');

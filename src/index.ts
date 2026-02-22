@@ -4,7 +4,7 @@ import { initCSV, getLeadCount, CSV_PATH } from './tools/csvWriter.js';
 
 function validateEnv(): void {
   const missing: string[] = [];
-  if (!process.env.ANTHROPIC_API_KEY) missing.push('ANTHROPIC_API_KEY');
+  if (!process.env.OPENAI_API_KEY) missing.push('OPENAI_API_KEY');
   if (!process.env.GOOGLE_PLACES_API_KEY) missing.push('GOOGLE_PLACES_API_KEY');
 
   if (missing.length > 0) {
