@@ -1,14 +1,12 @@
 {
   "name": "mapscrapperleads",
   "version": "1.0.0",
-  "description": "AI agent that generates and publishes LinkedIn posts from map-scraped leads",
+  "description": "AI agent that finds local trade businesses with no/poor website and exports them as leads",
   "type": "module",
   "scripts": {
     "dev": "tsx src/index.ts",
-    "dev:dry": "tsx src/index.ts --dry-run",
     "build": "tsc",
-    "start": "node dist/index.js",
-    "start:dry": "node dist/index.js --dry-run"
+    "start": "node dist/index.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
